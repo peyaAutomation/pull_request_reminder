@@ -59,8 +59,11 @@ def count_pull_request_reviews(pull_request):
 
     reviews = {}
 
-    for r in pull_request.reviews():
-        reviews[r.user.login] = r.state
+    try:
+        for r in pull_request.reviews(-1):
+            reviews[r.user.login] = r.state
+    except AttributeError:
+        print('Maybe NO reviews')
 
     for r_user in reviews:
         if reviews[r_user] == 'APPROVED':
