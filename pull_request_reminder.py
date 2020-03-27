@@ -1,0 +1,3 @@
+from functions import slack_statistic_messaging
+
+slack_statistic_messaging.pull_request_reminder()
