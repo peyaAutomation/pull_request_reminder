@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 import os
 import sys
@@ -76,14 +77,42 @@ def fetch_repository_open_pulls(repository):
     return pulls
 
 
+def duration(created_at):
+    current_date = datetime.now().replace(tzinfo=None)
+    return (current_date - created_at.replace(tzinfo=None)).days
+
+
+def get_review_statuses(pull):
+    dict = defaultdict(set)
+
+    for review in pull.reviews():
+        if review.state == 'APPROVED':
+            state = ':white_check_mark:'
+        elif review.state == 'CHANGES_REQUESTED':
+            state = ':o:'
+        else:
+            continue
+
+        dict[state].add('@{0}'.format(review.user.login))
+
+    if dict:
+        line = 'Reviews: ' + ' '.join(['{0} by {1}'.format(key, ', '.join(value)) for (key, value) in dict.items()])
+    else:
+        line = 'No reviews :warning:'
+
+    return line
+
+
 def format_pull_requests(pull_requests, owner, repository):
     lines = []
 
     for pull in pull_requests:
         if is_valid_title(pull.title):
             creator = pull.user.login
-            text = ' » *[{0}/{1}]* <{2}|{3} - by {4}>'.format(
-                owner, repository, pull.html_url, pull.title, creator)
+            review_statuses = get_review_statuses(pull)
+            days = duration(pull.created_at)
+            text = ' » *[{0}/{1}]* <{2}|{3} - by {4}> - *since {5} day(s)*'.format(
+                owner, repository, pull.html_url, pull.title, creator, days, review_statuses)
             lines.append({
                 "text": text,
                 "is_blocked": as_label(pull, BLOCKED_LABEL),
