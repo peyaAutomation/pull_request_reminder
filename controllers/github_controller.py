@@ -1,9 +1,11 @@
 import re
+import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 import os
 import sys
 from github3 import login
+from github3.exceptions import UnprocessableResponseBody
 
 BLOCKED_LABEL = 'BLOCKED'
 
@@ -27,7 +29,6 @@ MAX_PR_TO_CHECK = int(os.environ.get('MAX_PR_TO_CHECK', 200))
 
 try:
     GITHUB_API_TOKEN = os.environ['GITHUB_API_TOKEN']
-    print(GITHUB_API_TOKEN)
     ORGANIZATION = os.environ['ORGANIZATION']
 except KeyError as error:
     sys.stderr.write('Please set the environment variable {0}'.format(error))
@@ -48,7 +49,8 @@ def fetch_organization_repositories():
 
     for repository in organization.repositories():
         if ((REPOSITORIES and repository.name.lower() not in REPOSITORIES)
-                and not (REPOSITORY_REGEX is not None and REPOSITORY_REGEX != '' and bool(pattern.match(str(repository.name.lower()))))):
+                and not (REPOSITORY_REGEX is not None and REPOSITORY_REGEX != '' and bool(
+                    pattern.match(str(repository.name.lower()))))):
             continue
         repos.append(repository)
 
@@ -159,38 +161,37 @@ def fetch_contributor_statistics(repositories_list):
 
         # for contrib in contributions:
         while True:
+            try:
+                contrib = next(contributions, None)
 
-            while contributions.last_status == 202:
-                print('Waiting Before Iterator')
+                # while contributions.last_status == 202:
+                #   print('Waiting After Iterator')
 
-            contrib = next(contributions, None)
+                if contrib is None:
+                    break
 
-            while contributions.last_status == 202:
-                print('Waiting After Iterator')
+                if ((len(IGNORE_USERS) == 0 or contrib.author.login.lower() not in IGNORE_USERS)
+                        and (len(USER_NAMES) == 0 or contrib.author.login.lower() in USER_NAMES)):
+                    c = get_last_statistics(
+                        contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'c')
+                    a = get_last_statistics(
+                        contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'a')
+                    d = get_last_statistics(
+                        contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'd')
 
-            if contrib is None:
-                break
+                    if contrib.author.login not in statistics:
+                        statistics[contrib.author.login] = {
+                            'commits': 0,
+                            'additions': 0,
+                            'deletions': 0
+                        }
 
-            if ((len(IGNORE_USERS) == 0 or contrib.author.login.lower() not in IGNORE_USERS)
-                    and (len(USER_NAMES) == 0 or contrib.author.login.lower() in USER_NAMES)):
-                c = get_last_statistics(
-                    contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'c')
-                a = get_last_statistics(
-                    contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'a')
-                d = get_last_statistics(
-                    contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'd')
-
-                if contrib.author.login not in statistics:
-                    statistics[contrib.author.login] = {
-                        'commits': 0,
-                        'additions': 0,
-                        'deletions': 0
-                    }
-
-                statistics[contrib.author.login]['commits'] += c
-                statistics[contrib.author.login]['additions'] += a
-                statistics[contrib.author.login]['deletions'] += d
-
+                    statistics[contrib.author.login]['commits'] += c
+                    statistics[contrib.author.login]['additions'] += a
+                    statistics[contrib.author.login]['deletions'] += d
+            except UnprocessableResponseBody:
+                print('Error 202')
+                time.sleep(1)
     return statistics
 
 
