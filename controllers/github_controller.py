@@ -27,6 +27,7 @@ MAX_PR_TO_CHECK = int(os.environ.get('MAX_PR_TO_CHECK', 200))
 
 try:
     GITHUB_API_TOKEN = os.environ['GITHUB_API_TOKEN']
+    print(GITHUB_API_TOKEN)
     ORGANIZATION = os.environ['ORGANIZATION']
 except KeyError as error:
     sys.stderr.write('Please set the environment variable {0}'.format(error))

@@ -8,6 +8,7 @@ SLACK_CHANNEL = os.environ.get('SLACK_CHANNEL', 'developatheneabot')
 
 try:
     SLACK_API_TOKEN = os.environ['SLACK_API_TOKEN']
+    print(SLACK_API_TOKEN)
 except KeyError as error:
     sys.stderr.write('Please set the environment variable {0}'.format(error))
     sys.exit(1)
