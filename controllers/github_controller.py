@@ -40,14 +40,14 @@ def fetch_organization_repositories():
     pattern = None
     client = login(token=GITHUB_API_TOKEN)
     organization = client.organization(ORGANIZATION)
-    if REPOSITORY_REGEX is not None:
+    if REPOSITORY_REGEX is not None or REPOSITORY_REGEX != '':
         pattern = re.compile(REPOSITORY_REGEX)
 
     repos = []
 
     for repository in organization.repositories():
         if ((REPOSITORIES and repository.name.lower() not in REPOSITORIES)
-                and not (REPOSITORY_REGEX is not None and bool(pattern.match(str(repository.name.lower()))))):
+                and not (REPOSITORY_REGEX is not None and REPOSITORY_REGEX != '' and bool(pattern.match(str(repository.name.lower()))))):
             continue
         repos.append(repository)
 
@@ -156,7 +156,7 @@ def fetch_contributor_statistics(repositories_list):
     for repository in repositories_list:
         contributions = repository.contributor_statistics()
 
-        #for contrib in contributions:
+        # for contrib in contributions:
         while True:
 
             while contributions.last_status == 202:
@@ -170,7 +170,8 @@ def fetch_contributor_statistics(repositories_list):
             if contrib is None:
                 break
 
-            if not IGNORE_USERS or contrib.author.login.lower() not in IGNORE_USERS:
+            if ((len(IGNORE_USERS) == 0 or contrib.author.login.lower() not in IGNORE_USERS)
+                    and (len(USER_NAMES) == 0 or contrib.author.login.lower() in USER_NAMES)):
                 c = get_last_statistics(
                     contrib.weeks[len(contrib.weeks) - int(TIME_EVALUATED): len(contrib.weeks)], 'c')
                 a = get_last_statistics(
