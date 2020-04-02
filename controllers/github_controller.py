@@ -203,19 +203,17 @@ def as_label(pull, text):
 
 
 def count_pull_request_reviews(pull_request):
-    count = 0
-
     reviews = {}
+    author = pull_request.user.login
+    pr_reviews = pull_request.reviews()
 
-    try:
-        for r in pull_request.reviews(-1):
-            reviews[r.user.login] = r.state
-    except AttributeError:
-        print('Maybe NO reviews')
-
-    for r_user in reviews:
-        if reviews[r_user] == 'APPROVED':
-            count += 1
+    for r in pr_reviews:
+        if r.user.login != author:
+            if r.user.login in reviews:
+                if r.state != 'COMMENTED':
+                    reviews[r.user.login] = r.state
+            else:
+                reviews[r.user.login] = r.state
 
     result = {
         'APPROVED': 0,
