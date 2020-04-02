@@ -81,8 +81,16 @@ def fetch_repository_open_pulls(repository):
 
 
 def duration(created_at):
-    current_date = datetime.now().replace(tzinfo=None)
-    return (current_date - created_at.replace(tzinfo=None)).days
+    current_date = datetime.utcnow()
+    difference = (current_date - created_at.replace(tzinfo=None))
+    if difference.days == 0:
+        if difference.seconds > 3600:
+            hours = int(difference.seconds/3600)
+            return hours, 'Hour' if hours <= 1 else 'Hours'
+        else:
+            minutes = int(difference.seconds/60)
+            return minutes, 'Minute' if minutes <= 1 else 'Minutes'
+    return difference.days, 'Day' if difference.days <= 1 else 'Days'
 
 
 def get_review_statuses(pull):
@@ -113,9 +121,9 @@ def format_pull_requests(pull_requests, owner, repository):
         if is_valid_title(pull.title):
             creator = pull.user.login
             review_statuses = get_review_statuses(pull)
-            days = duration(pull.created_at)
-            text = ' » *[{0}/{1}]* <{2}|{3} - by {4}> - *since {5} day(s)*'.format(
-                owner, repository, pull.html_url, pull.title, creator, days, review_statuses)
+            c_since = duration(pull.created_at)
+            text = ' » *[{0}/{1}]* <{2}|{3} - by {4}> - *Since {5} {6}*'.format(
+                owner, repository, pull.html_url, pull.title, creator, c_since[0], c_since[1], review_statuses)
             lines.append({
                 "text": text,
                 "is_blocked": as_label(pull, BLOCKED_LABEL),
