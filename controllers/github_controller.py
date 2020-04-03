@@ -48,11 +48,10 @@ def fetch_organization_repositories():
     repos = []
 
     for repository in organization.repositories():
-        if ((REPOSITORIES and repository.name.lower() not in REPOSITORIES)
-                and not (REPOSITORY_REGEX is not None and REPOSITORY_REGEX != '' and bool(
+        if ((len(REPOSITORIES) > 0 and repository.name.lower() in REPOSITORIES)
+                or (REPOSITORY_REGEX is not None and REPOSITORY_REGEX != '' and bool(
                     pattern.match(str(repository.name.lower()))))):
-            continue
-        repos.append(repository)
+            repos.append(repository)
 
     return repos
 
