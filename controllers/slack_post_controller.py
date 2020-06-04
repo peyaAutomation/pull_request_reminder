@@ -18,7 +18,6 @@ def send_to_slack(blocks):
     payload = {
         'token': SLACK_API_TOKEN,
         'channel': SLACK_CHANNEL,
-        'as_user': False,
         'blocks': json.dumps(blocks)
     }
 
