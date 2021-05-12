@@ -67,7 +67,7 @@ def post_pull_reminder(ready_to_merge=[], waiting_for_approvals=[], changes_need
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Ready to Merge:*" + lines
+                "text": ":rocket: *Ready to Merge:*" + lines
             }
         })
 
@@ -85,7 +85,7 @@ def post_pull_reminder(ready_to_merge=[], waiting_for_approvals=[], changes_need
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Waiting for approvals:*" + lines
+                "text": ":waiting: *Waiting for approvals:*" + lines
             }
         })
 
@@ -103,7 +103,7 @@ def post_pull_reminder(ready_to_merge=[], waiting_for_approvals=[], changes_need
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Changes Needed:*" + lines
+                "text": ":arrows_counterclockwise: *Changes Needed:*" + lines
             }
         })
 
@@ -121,7 +121,7 @@ def post_pull_reminder(ready_to_merge=[], waiting_for_approvals=[], changes_need
             "type": "section",
             "text": {
                 "type": "mrkdwn",
-                "text": "*Blockeds:*" + lines
+                "text": ":no_entry: *Blockeds:*" + lines
             }
         })
 

@@ -74,7 +74,7 @@ def fetch_repository_open_pulls(repository):
     pulls = []
 
     for pull in repository.pull_requests():
-        if pull.state == 'open' and (not USER_NAMES or pull.user.login.lower() in USER_NAMES):
+        if pull.state == 'open' and (not USER_NAMES or pull.user.login.lower() in USER_NAMES) and pull.user.login.lower() not in IGNORE_USERS:
             pulls.append(pull)
     return pulls
 
@@ -93,24 +93,39 @@ def duration(created_at):
 
 
 def get_review_statuses(pull):
-    dict = defaultdict(set)
+    dict_reviews = defaultdict(set)
 
     for review in pull.reviews():
-        if review.state == 'APPROVED':
-            state = ':white_check_mark:'
-        elif review.state == 'CHANGES_REQUESTED':
-            state = ':o:'
-        else:
-            continue
+        if (review.user.login != pull.user.login
+                and review.user.login.lower() not in IGNORE_USERS):
+            if review.state == 'APPROVED':
+                state = 'Reviewers'
+            elif review.state == 'CHANGES_REQUESTED' or review.state == 'COMMENTED':
+                state = 'Comment'
+            elif review.state == 'DECLINED':
+                state = 'Decline'
+            else:
+                continue
 
-        dict[state].add('@{0}'.format(review.user.login))
+            dict_reviews[state].add('<{0}|{1}>'.format(review.user.html_url, review.user.login))
 
-    if dict:
-        line = 'Reviews: ' + ' '.join(['{0} by {1}'.format(key, ', '.join(value)) for (key, value) in dict.items()])
-    else:
-        line = 'No reviews :warning:'
+    for reviewer in pull.requested_reviewers:
+        if (reviewer.login.lower() not in IGNORE_USERS
+                and '<{0}|{1}>'.format(reviewer.html_url, reviewer.login) not in dict_reviews['Comment']):
+            state = 'Pending'
+            dict_reviews[state].add('<{0}|{1}>'.format(reviewer.html_url, reviewer.login))
 
-    return line
+    # Remove Duplicates and Empties
+    for r in dict_reviews['Comment'].copy():
+        if r in dict_reviews['Reviewers']:
+            dict_reviews['Comment'].remove(r)
+    if len(dict_reviews['Comment']) == 0:
+        dict_reviews.pop('Comment')
+    if len(dict_reviews['Reviewers']) == 0:
+        dict_reviews.pop('Reviewers')
+
+    return (''.join(['({0}: {1}). '.format(key, ', '.join(value)) for (key, value) in dict_reviews.items()])
+            if dict_reviews else '')
 
 
 def format_pull_requests(pull_requests, owner, repository):
@@ -121,8 +136,16 @@ def format_pull_requests(pull_requests, owner, repository):
             creator = pull.user.login
             review_statuses = get_review_statuses(pull)
             c_since = duration(pull.created_at)
-            text = ' » *[{0}/{1}]* <{2}|{3} - by {4}> - *Since {5} {6}*'.format(
-                owner, repository, pull.html_url, pull.title, creator, c_since[0], c_since[1], review_statuses)
+            text = ' » *[{1}]* <{2}|{3}#{8} - by {4}> - *Since {5} {6} {7}* '.format(
+                owner,
+                repository,
+                pull.html_url,
+                pull.title,
+                creator,
+                c_since[0],
+                c_since[1],
+                review_statuses,
+                pull.number)
             lines.append({
                 "text": text,
                 "is_blocked": as_label(pull, BLOCKED_LABEL),
